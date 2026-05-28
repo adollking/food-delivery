@@ -1,0 +1,38 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: food_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: foodweb
+
+  backend:
+    build:
+      context: ./backend
+    container_name: food_backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/foodweb
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      PORT: 3000
+
+  frontend:
+    build:
+      context: .
+    container_name: food_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mongo_data:
