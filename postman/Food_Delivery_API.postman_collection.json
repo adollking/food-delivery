@@ -1,0 +1,818 @@
+{
+  "info": {
+    "name": "Food Delivery API",
+    "description": "REST API documentation for the Food Delivery backend.\n\n**How to use:**\n1. Import this collection and the `Food_Delivery_Local.postman_environment.json` file.\n2. Select the **Food Delivery – Local** environment.\n3. Call **Auth → Login** (or **Register**) — the `token` variable is saved automatically.\n4. All protected requests will use that token via the collection-level Bearer auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url",       "value": "http://localhost:3000/api" },
+    { "key": "token",          "value": "" },
+    { "key": "restaurant_id",  "value": "" },
+    { "key": "menu_item_id",   "value": "" },
+    { "key": "order_id",       "value": "" },
+    { "key": "delivery_id",    "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Register, login, and get the current user.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"secret123\",\n  \"role\": \"customer\",\n  \"phone\": \"081234567890\",\n  \"address\": \"Jl. Sudirman No. 1, Jakarta\"\n}"
+            },
+            "description": "Create a new user account.\n\n**Roles:** `customer` (default), `restaurant_owner`, `admin`\n\nReturns a JWT `token` and basic user info. The test script saves the token automatically."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const { token } = pm.response.json();",
+                  "    pm.collectionVariables.set('token', token);",
+                  "    console.log('Token saved from Register');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"role\": \"customer\"\n  }\n}"
+            },
+            {
+              "name": "409 Email already in use",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"message\": \"Email already in use\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"secret123\"\n}"
+            },
+            "description": "Authenticate with email and password. The test script saves the JWT token to `{{token}}` automatically — all subsequent protected requests will use it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const { token } = pm.response.json();",
+                  "    pm.collectionVariables.set('token', token);",
+                  "    console.log('Token saved from Login');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"role\": \"customer\"\n  }\n}"
+            },
+            {
+              "name": "401 Invalid credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"message\": \"Invalid credentials\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] },
+            "description": "Returns the profile of the currently authenticated user.\n\n**Auth required:** Bearer token"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"user\": {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"role\": \"customer\",\n    \"phone\": \"081234567890\",\n    \"address\": \"Jl. Sudirman No. 1, Jakarta\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"message\": \"No token, authorization denied\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Restaurants",
+      "description": "Manage restaurants. Creating, updating, and deleting requires the `restaurant_owner` or `admin` role.",
+      "item": [
+        {
+          "name": "Get All Restaurants",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/restaurants", "host": ["{{base_url}}"], "path": ["restaurants"] },
+            "description": "Returns a list of all restaurants. **Public** — no auth required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.length > 0) {",
+                  "        pm.collectionVariables.set('restaurant_id', data[0]._id);",
+                  "        console.log('restaurant_id saved:', data[0]._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n    \"name\": \"Warung Nasi Padang\",\n    \"owner\": { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\", \"name\": \"John Doe\", \"email\": \"john@example.com\" },\n    \"description\": \"Authentic Padang cuisine\",\n    \"address\": \"Jl. Thamrin No. 5, Jakarta\",\n    \"cuisine\": [\"Indonesian\", \"Padang\"],\n    \"rating\": 4.5,\n    \"isOpen\": true,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Restaurant by ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/restaurants/{{restaurant_id}}", "host": ["{{base_url}}"], "path": ["restaurants", "{{restaurant_id}}"] },
+            "description": "Returns a single restaurant by ID. **Public** — no auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n  \"name\": \"Warung Nasi Padang\",\n  \"owner\": { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\", \"name\": \"John Doe\", \"email\": \"john@example.com\" },\n  \"description\": \"Authentic Padang cuisine\",\n  \"address\": \"Jl. Thamrin No. 5, Jakarta\",\n  \"cuisine\": [\"Indonesian\", \"Padang\"],\n  \"rating\": 4.5,\n  \"isOpen\": true\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"message\": \"Restaurant not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Restaurant",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/restaurants", "host": ["{{base_url}}"], "path": ["restaurants"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Warung Nasi Padang\",\n  \"description\": \"Authentic Padang cuisine\",\n  \"address\": \"Jl. Thamrin No. 5, Jakarta\",\n  \"cuisine\": [\"Indonesian\", \"Padang\"],\n  \"isOpen\": true\n}"
+            },
+            "description": "Create a new restaurant. The owner is set automatically from the authenticated user.\n\n**Auth required:** `restaurant_owner` or `admin` role"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('restaurant_id', data._id);",
+                  "    console.log('restaurant_id saved:', data._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n  \"name\": \"Warung Nasi Padang\",\n  \"owner\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n  \"description\": \"Authentic Padang cuisine\",\n  \"address\": \"Jl. Thamrin No. 5, Jakarta\",\n  \"cuisine\": [\"Indonesian\", \"Padang\"],\n  \"rating\": 0,\n  \"isOpen\": true,\n  \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+            },
+            {
+              "name": "403 Access denied",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"message\": \"Access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Restaurant",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/restaurants/{{restaurant_id}}", "host": ["{{base_url}}"], "path": ["restaurants", "{{restaurant_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Warung Nasi Padang (Updated)\",\n  \"isOpen\": false\n}"
+            },
+            "description": "Update restaurant details. Only the restaurant owner or an admin can update.\n\n**Auth required:** `restaurant_owner` (owner only) or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n  \"name\": \"Warung Nasi Padang (Updated)\",\n  \"isOpen\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Restaurant",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/restaurants/{{restaurant_id}}", "host": ["{{base_url}}"], "path": ["restaurants", "{{restaurant_id}}"] },
+            "description": "Delete a restaurant. Only the restaurant owner or an admin can delete.\n\n**Auth required:** `restaurant_owner` (owner only) or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Restaurant deleted\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Menu Items",
+      "description": "Manage menu items per restaurant. Reading is public; creating/updating/deleting requires `restaurant_owner` or `admin`.",
+      "item": [
+        {
+          "name": "Get Menu Items by Restaurant",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/menu-items/restaurant/{{restaurant_id}}", "host": ["{{base_url}}"], "path": ["menu-items", "restaurant", "{{restaurant_id}}"] },
+            "description": "Returns all menu items for a specific restaurant. **Public** — no auth required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.length > 0) {",
+                  "        pm.collectionVariables.set('menu_item_id', data[0]._id);",
+                  "        console.log('menu_item_id saved:', data[0]._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f3\",\n    \"name\": \"Nasi Rendang\",\n    \"description\": \"Beef rendang with steamed rice\",\n    \"price\": 35000,\n    \"category\": \"Main Course\",\n    \"restaurant\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n    \"isAvailable\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Menu Item by ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["menu-items", "{{menu_item_id}}"] },
+            "description": "Returns a single menu item by ID. **Public** — no auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f3\",\n  \"name\": \"Nasi Rendang\",\n  \"description\": \"Beef rendang with steamed rice\",\n  \"price\": 35000,\n  \"category\": \"Main Course\",\n  \"restaurant\": { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\", \"name\": \"Warung Nasi Padang\" },\n  \"isAvailable\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Menu Item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/menu-items", "host": ["{{base_url}}"], "path": ["menu-items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nasi Rendang\",\n  \"description\": \"Beef rendang with steamed rice\",\n  \"price\": 35000,\n  \"category\": \"Main Course\",\n  \"restaurant\": \"{{restaurant_id}}\",\n  \"isAvailable\": true\n}"
+            },
+            "description": "Add a new item to a restaurant's menu. You must own the restaurant.\n\n**Auth required:** `restaurant_owner` (must be the restaurant owner) or `admin`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('menu_item_id', data._id);",
+                  "    console.log('menu_item_id saved:', data._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f3\",\n  \"name\": \"Nasi Rendang\",\n  \"description\": \"Beef rendang with steamed rice\",\n  \"price\": 35000,\n  \"category\": \"Main Course\",\n  \"restaurant\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n  \"isAvailable\": true,\n  \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Menu Item",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["menu-items", "{{menu_item_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 40000,\n  \"isAvailable\": false\n}"
+            },
+            "description": "Update a menu item. You must own the restaurant that owns this item.\n\n**Auth required:** `restaurant_owner` (owner only) or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f3\",\n  \"name\": \"Nasi Rendang\",\n  \"price\": 40000,\n  \"isAvailable\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Menu Item",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["menu-items", "{{menu_item_id}}"] },
+            "description": "Delete a menu item.\n\n**Auth required:** `restaurant_owner` (owner only) or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Menu item deleted\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Place and manage orders.\n\n- `customer` — create orders, view their own orders\n- `restaurant_owner` — view and update status of orders for their restaurant\n- `admin` — full access",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurant\": \"{{restaurant_id}}\",\n  \"items\": [\n    { \"menuItem\": \"{{menu_item_id}}\", \"quantity\": 2 }\n  ],\n  \"deliveryAddress\": \"Jl. Gatot Subroto No. 10, Jakarta\",\n  \"note\": \"Extra spicy please\"\n}"
+            },
+            "description": "Place a new order. The `totalAmount` is calculated automatically from current menu item prices.\n\n**Auth required:** `customer` role\n\n**Status flow:** `pending` → `confirmed` → `preparing` → `delivering` → `delivered`\n(can be cancelled from `pending` or `confirmed`)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('order_id', data._id);",
+                  "    console.log('order_id saved:', data._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n  \"customer\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n  \"restaurant\": \"64b1c2d3e4f5a6b7c8d9e0f2\",\n  \"items\": [\n    {\n      \"menuItem\": \"64b1c2d3e4f5a6b7c8d9e0f3\",\n      \"name\": \"Nasi Rendang\",\n      \"price\": 35000,\n      \"quantity\": 2\n    }\n  ],\n  \"status\": \"pending\",\n  \"totalAmount\": 70000,\n  \"deliveryAddress\": \"Jl. Gatot Subroto No. 10, Jakarta\",\n  \"note\": \"Extra spicy please\",\n  \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"restaurant, items, and deliveryAddress are required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/orders/my", "host": ["{{base_url}}"], "path": ["orders", "my"] },
+            "description": "Returns all orders placed by the authenticated customer, sorted newest first.\n\n**Auth required:** `customer` role"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n    \"restaurant\": { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f2\", \"name\": \"Warung Nasi Padang\", \"address\": \"Jl. Thamrin No. 5\" },\n    \"items\": [ { \"name\": \"Nasi Rendang\", \"price\": 35000, \"quantity\": 2 } ],\n    \"status\": \"pending\",\n    \"totalAmount\": 70000,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Restaurant Orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/orders/restaurant/{{restaurant_id}}", "host": ["{{base_url}}"], "path": ["orders", "restaurant", "{{restaurant_id}}"] },
+            "description": "Returns all incoming orders for a restaurant, sorted newest first.\n\n**Auth required:** `restaurant_owner` or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n    \"customer\": { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\", \"name\": \"John Doe\", \"email\": \"john@example.com\", \"phone\": \"081234567890\" },\n    \"items\": [ { \"name\": \"Nasi Rendang\", \"price\": 35000, \"quantity\": 2 } ],\n    \"status\": \"pending\",\n    \"totalAmount\": 70000,\n    \"deliveryAddress\": \"Jl. Gatot Subroto No. 10\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/orders/{{order_id}}", "host": ["{{base_url}}"], "path": ["orders", "{{order_id}}"] },
+            "description": "Returns a single order by ID.\n\n**Auth required:** Any authenticated user. Customers can only see their own orders."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n  \"customer\": { \"name\": \"John Doe\", \"email\": \"john@example.com\" },\n  \"restaurant\": { \"name\": \"Warung Nasi Padang\", \"address\": \"Jl. Thamrin No. 5\" },\n  \"items\": [ { \"name\": \"Nasi Rendang\", \"price\": 35000, \"quantity\": 2 } ],\n  \"status\": \"pending\",\n  \"totalAmount\": 70000,\n  \"deliveryAddress\": \"Jl. Gatot Subroto No. 10\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/orders/{{order_id}}/status", "host": ["{{base_url}}"], "path": ["orders", "{{order_id}}", "status"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "description": "Advance or cancel an order. Only valid transitions are allowed:\n\n| Current | Allowed next |\n|---|---|\n| `pending` | `confirmed`, `cancelled` |\n| `confirmed` | `preparing`, `cancelled` |\n| `preparing` | `delivering` |\n| `delivering` | `delivered` |\n\n**Auth required:** `restaurant_owner` or `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n  \"status\": \"confirmed\",\n  \"updatedAt\": \"2024-01-01T00:01:00.000Z\"\n}"
+            },
+            {
+              "name": "400 Invalid transition",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"Cannot transition from 'delivered' to 'pending'\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Delivery Tracking",
+      "description": "Assign drivers and track deliveries in real-time.\n\n**Role map:**\n- `restaurant_owner` / `admin` — assign a driver to an order\n- `driver` — update location and advance status\n- Any authenticated user — track delivery for an order (customers see only their own)\n\n**Status chain:** `assigned` → `picked_up` → `on_the_way` → `arrived` → `delivered`\n\nWhen status reaches `delivered` the linked Order is automatically updated too.",
+      "item": [
+        {
+          "name": "Assign Delivery",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/deliveries", "host": ["{{base_url}}"], "path": ["deliveries"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": \"{{order_id}}\",\n  \"driver\": \"<driver_user_id>\",\n  \"estimatedArrival\": \"2024-01-01T12:30:00.000Z\"\n}"
+            },
+            "description": "Assign a driver to an order and create a delivery record. The order must be in `confirmed` or `preparing` status. Automatically sets the order status to `delivering`.\n\n**Auth required:** `restaurant_owner` or `admin`\n\n**Body fields:**\n| Field | Required | Description |\n|---|---|---|\n| `order` | yes | Order ID to deliver |\n| `driver` | yes | User ID with `driver` role |\n| `estimatedArrival` | no | ISO date string for ETA |"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('delivery_id', data._id);",
+                  "    console.log('delivery_id saved:', data._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n  \"order\": {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n    \"deliveryAddress\": \"Jl. Gatot Subroto No. 10, Jakarta\",\n    \"totalAmount\": 70000,\n    \"status\": \"delivering\"\n  },\n  \"driver\": {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f7\",\n    \"name\": \"Budi Santoso\",\n    \"phone\": \"082112345678\"\n  },\n  \"status\": \"assigned\",\n  \"estimatedArrival\": \"2024-01-01T12:30:00.000Z\",\n  \"currentLocation\": null,\n  \"locationHistory\": [],\n  \"createdAt\": \"2024-01-01T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 User is not a driver",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"User is not a driver\"\n}"
+            },
+            {
+              "name": "400 Order not in correct state",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"Order must be confirmed or preparing before assigning delivery\"\n}"
+            },
+            {
+              "name": "409 Already assigned",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"message\": \"Delivery already assigned for this order\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Track Delivery by Order",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/deliveries/order/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "order", "{{order_id}}"]
+            },
+            "description": "Get the full delivery record for an order — driver info, current GPS location, location history, and status.\n\nThe frontend map component polls this endpoint every 10 seconds.\n\n**Auth required:** Any authenticated user. Customers can only view deliveries for their own orders."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n  \"order\": {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n    \"deliveryAddress\": \"Jl. Gatot Subroto No. 10, Jakarta\",\n    \"totalAmount\": 70000,\n    \"status\": \"delivering\",\n    \"customer\": \"64b1c2d3e4f5a6b7c8d9e0f1\"\n  },\n  \"driver\": {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f7\",\n    \"name\": \"Budi Santoso\",\n    \"phone\": \"082112345678\"\n  },\n  \"status\": \"on_the_way\",\n  \"currentLocation\": {\n    \"lat\": -6.2088,\n    \"lng\": 106.8456,\n    \"address\": \"Jl. Sudirman, Jakarta\",\n    \"timestamp\": \"2024-01-01T12:15:00.000Z\"\n  },\n  \"locationHistory\": [\n    { \"lat\": -6.2100, \"lng\": 106.8400, \"timestamp\": \"2024-01-01T12:10:00.000Z\" },\n    { \"lat\": -6.2088, \"lng\": 106.8456, \"timestamp\": \"2024-01-01T12:15:00.000Z\" }\n  ],\n  \"estimatedArrival\": \"2024-01-01T12:30:00.000Z\",\n  \"pickedUpAt\": \"2024-01-01T12:08:00.000Z\"\n}"
+            },
+            {
+              "name": "404 No delivery found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"message\": \"No delivery found for this order\"\n}"
+            },
+            {
+              "name": "403 Not your order",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"message\": \"Access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Deliveries (Driver)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/deliveries/my",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "my"]
+            },
+            "description": "Returns all deliveries assigned to the authenticated driver, sorted newest first.\n\n**Auth required:** `driver` role"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n    \"order\": {\n      \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f4\",\n      \"deliveryAddress\": \"Jl. Gatot Subroto No. 10, Jakarta\",\n      \"totalAmount\": 70000,\n      \"status\": \"delivering\",\n      \"items\": [\n        { \"name\": \"Nasi Rendang\", \"quantity\": 2, \"price\": 35000 }\n      ]\n    },\n    \"status\": \"on_the_way\",\n    \"estimatedArrival\": \"2024-01-01T12:30:00.000Z\",\n    \"createdAt\": \"2024-01-01T12:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Update Driver Location",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/deliveries/{{delivery_id}}/location",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "{{delivery_id}}", "location"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": -6.2088,\n  \"lng\": 106.8456,\n  \"address\": \"Jl. Sudirman, Jakarta\"\n}"
+            },
+            "description": "Driver pushes their current GPS coordinates. Each update is appended to `locationHistory` so the customer's map shows the full route trail.\n\nCall this every 10–30 seconds from the driver app.\n\n**Auth required:** `driver` role (must be the assigned driver for this delivery)\n\n**Body fields:**\n| Field | Required | Description |\n|---|---|---|\n| `lat` | yes | Latitude (decimal degrees) |\n| `lng` | yes | Longitude (decimal degrees) |\n| `address` | no | Human-readable street address |"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"deliveryId\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n  \"currentLocation\": {\n    \"lat\": -6.2088,\n    \"lng\": 106.8456,\n    \"address\": \"Jl. Sudirman, Jakarta\",\n    \"timestamp\": \"2024-01-01T12:15:00.000Z\"\n  },\n  \"status\": \"on_the_way\"\n}"
+            },
+            {
+              "name": "400 Delivery already completed",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"Delivery is already completed\"\n}"
+            },
+            {
+              "name": "403 Not assigned driver",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"message\": \"Access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Delivery Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/deliveries/{{delivery_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "{{delivery_id}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"picked_up\"\n}"
+            },
+            "description": "Advance the delivery to the next status. Only valid forward transitions are accepted.\n\nWhen status becomes `delivered`, the linked Order is automatically updated to `delivered` as well.\n\n**Auth required:** `driver` (assigned driver) or `admin`\n\n**Valid transitions:**\n| Current status | Allowed next |\n|---|---|\n| `assigned` | `picked_up` |\n| `picked_up` | `on_the_way` |\n| `on_the_way` | `arrived` |\n| `arrived` | `delivered` |\n\n**Timestamps set automatically:**\n- `pickedUpAt` — when status → `picked_up`\n- `deliveredAt` — when status → `delivered`"
+          },
+          "response": [
+            {
+              "name": "200 OK — picked_up",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n  \"status\": \"picked_up\",\n  \"pickedUpAt\": \"2024-01-01T12:08:00.000Z\",\n  \"updatedAt\": \"2024-01-01T12:08:00.000Z\"\n}"
+            },
+            {
+              "name": "200 OK — delivered",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f6\",\n  \"status\": \"delivered\",\n  \"pickedUpAt\": \"2024-01-01T12:08:00.000Z\",\n  \"deliveredAt\": \"2024-01-01T12:28:00.000Z\",\n  \"updatedAt\": \"2024-01-01T12:28:00.000Z\"\n}"
+            },
+            {
+              "name": "400 Invalid transition",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"message\": \"Cannot transition from 'assigned' to 'delivered'\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "description": "API access logs — **admin only**.\n\nEvery request is stored in MongoDB with method, path, status code, response time, IP, and user identity. Logs auto-delete after 30 days.\n\n**Auth required:** `admin` role for all endpoints.",
+      "item": [
+        {
+          "name": "Get Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/logs?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["logs"],
+              "query": [
+                { "key": "page",       "value": "1",    "description": "Page number (default: 1)" },
+                { "key": "limit",      "value": "50",   "description": "Results per page (default: 50)" },
+                { "key": "userId",     "value": "",     "description": "Filter by user ObjectId", "disabled": true },
+                { "key": "method",     "value": "",     "description": "Filter by HTTP method: GET, POST, PATCH, DELETE", "disabled": true },
+                { "key": "path",       "value": "",     "description": "Filter by path substring (case-insensitive regex)", "disabled": true },
+                { "key": "statusCode", "value": "",     "description": "Filter by exact HTTP status code e.g. 401", "disabled": true },
+                { "key": "from",       "value": "",     "description": "Start of date range (ISO 8601) e.g. 2024-01-01T00:00:00Z", "disabled": true },
+                { "key": "to",         "value": "",     "description": "End of date range (ISO 8601)", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all API request logs. Use query params to filter.\n\n**Auth required:** `admin`\n\n**Example queries:**\n```\nGET /api/logs?statusCode=401                        # all failed auth attempts\nGET /api/logs?method=POST&path=orders               # all order creation calls\nGET /api/logs?userId=64b1c2...&from=2024-01-01      # one user's activity\nGET /api/logs?page=2&limit=20                       # pagination\n```"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"total\": 1240,\n  \"page\": 1,\n  \"pages\": 25,\n  \"logs\": [\n    {\n      \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f9\",\n      \"method\": \"POST\",\n      \"path\": \"/auth/login\",\n      \"statusCode\": 200,\n      \"responseTime\": 143,\n      \"ip\": \"::1\",\n      \"userAgent\": \"PostmanRuntime/7.32.3\",\n      \"userId\": {\n        \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\",\n        \"name\": \"John Doe\",\n        \"email\": \"john@example.com\",\n        \"role\": \"customer\"\n      },\n      \"userEmail\": \"john@example.com\",\n      \"userRole\": \"customer\",\n      \"createdAt\": \"2024-01-01T12:00:00.000Z\"\n    },\n    {\n      \"_id\": \"64b1c2d3e4f5a6b7c8d9e0fa\",\n      \"method\": \"POST\",\n      \"path\": \"/auth/login\",\n      \"statusCode\": 401,\n      \"responseTime\": 89,\n      \"ip\": \"203.0.113.42\",\n      \"userAgent\": \"Mozilla/5.0\",\n      \"userId\": null,\n      \"userEmail\": null,\n      \"userRole\": null,\n      \"createdAt\": \"2024-01-01T11:58:00.000Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Not admin",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"message\": \"Access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Log Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/logs/stats",
+              "host": ["{{base_url}}"],
+              "path": ["logs", "stats"]
+            },
+            "description": "Returns three aggregated summaries in one call:\n\n- **`topRoutes`** — top 10 most-called endpoints with call count and average response time\n- **`topUsers`** — top 10 most active authenticated users by request count\n- **`statusBreakdown`** — count of every HTTP status code (200, 201, 400, 401, 404, 500…)\n\n**Auth required:** `admin`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"topRoutes\": [\n    { \"_id\": { \"method\": \"GET\",  \"path\": \"/restaurants\" },   \"count\": 540, \"avgMs\": 45.2 },\n    { \"_id\": { \"method\": \"POST\", \"path\": \"/auth/login\" },    \"count\": 312, \"avgMs\": 138.7 },\n    { \"_id\": { \"method\": \"GET\",  \"path\": \"/menu-items/restaurant/:id\" }, \"count\": 289, \"avgMs\": 62.1 },\n    { \"_id\": { \"method\": \"POST\", \"path\": \"/orders\" },         \"count\": 201, \"avgMs\": 210.4 },\n    { \"_id\": { \"method\": \"GET\",  \"path\": \"/deliveries/order/:id\" }, \"count\": 187, \"avgMs\": 55.8 }\n  ],\n  \"topUsers\": [\n    { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f1\", \"email\": \"john@example.com\",  \"role\": \"customer\",          \"count\": 430 },\n    { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f7\", \"email\": \"budi@example.com\",  \"role\": \"driver\",            \"count\": 218 },\n    { \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f8\", \"email\": \"admin@example.com\", \"role\": \"admin\",             \"count\": 95  }\n  ],\n  \"statusBreakdown\": [\n    { \"_id\": 200, \"count\": 890 },\n    { \"_id\": 201, \"count\": 310 },\n    { \"_id\": 400, \"count\": 42  },\n    { \"_id\": 401, \"count\": 28  },\n    { \"_id\": 403, \"count\": 11  },\n    { \"_id\": 404, \"count\": 19  },\n    { \"_id\": 500, \"count\": 3   }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products (Legacy)",
+      "description": "Legacy product endpoints from the original codebase. Use Menu Items for restaurant-specific items.",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] },
+            "description": "Returns all products. **Public** — no auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f5\",\n    \"name\": \"Burger\",\n    \"description\": \"Classic beef burger\",\n    \"price\": 45000,\n    \"category\": \"Fast Food\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Burger\",\n  \"description\": \"Classic beef burger\",\n  \"price\": 45000,\n  \"category\": \"Fast Food\"\n}"
+            },
+            "description": "Create a product.\n\n**Auth required:** `admin` role only"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"64b1c2d3e4f5a6b7c8d9e0f5\",\n  \"name\": \"Burger\",\n  \"description\": \"Classic beef burger\",\n  \"price\": 45000,\n  \"category\": \"Fast Food\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
